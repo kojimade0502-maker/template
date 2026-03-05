@@ -1,6 +1,660 @@
-test
-test
-test
-test
-test
-test
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Todo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #1a1a1f;
+    --surface2: #242429;
+    --accent: #c8ff57;
+    --accent2: #ff6b6b;
+    --text: #f0f0f0;
+    --text-muted: #888;
+    --border: #2e2e36;
+    --radius: 18px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    overscroll-behavior: none;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    position: relative;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 56px 24px 20px;
+    flex-shrink: 0;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+  }
+
+  .app-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .app-title span {
+    color: var(--accent);
+  }
+
+  .date-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 6px;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .stat-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 7px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+
+  .stat-chip .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .stat-chip.done .dot { background: var(--text-muted); }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  /* FILTER TABS */
+  .filter-bar {
+    display: flex;
+    padding: 0 24px;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+
+  .filter-btn {
+    padding: 8px 18px;
+    border-radius: 50px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .filter-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+
+  /* TODO LIST */
+  .todo-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 24px 120px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .todo-scroll::-webkit-scrollbar { display: none; }
+
+  .todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .todo-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    animation: slideIn 0.25s ease forwards;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .todo-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .todo-item:active { transform: scale(0.98); }
+
+  .todo-item.completed {
+    opacity: 0.45;
+  }
+
+  .todo-item.completed::before { display: none; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .check-btn {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .todo-item.completed .check-btn {
+    background: var(--text-muted);
+    border-color: var(--text-muted);
+  }
+
+  .check-icon {
+    width: 12px; height: 12px;
+    stroke: #fff;
+    stroke-width: 2.5;
+    fill: none;
+    display: none;
+  }
+
+  .todo-item.completed .check-icon { display: block; }
+
+  .todo-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .todo-text {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.4;
+    word-break: break-word;
+    transition: all 0.2s;
+  }
+
+  .todo-item.completed .todo-text {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+
+  .todo-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+  }
+
+  .todo-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 50px;
+    font-weight: 500;
+  }
+
+  .tag-work { background: rgba(200,255,87,0.12); color: var(--accent); }
+  .tag-life { background: rgba(255,107,107,0.12); color: var(--accent2); }
+  .tag-other { background: rgba(255,255,255,0.07); color: var(--text-muted); }
+
+  .todo-time {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .delete-btn {
+    width: 28px; height: 28px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: 50%;
+  }
+
+  .todo-item:hover .delete-btn,
+  .delete-btn:focus { opacity: 1; }
+
+  /* Always show on mobile */
+  @media (hover: none) {
+    .delete-btn { opacity: 0.35; }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 0;
+    color: var(--text-muted);
+  }
+
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+    opacity: 0.4;
+  }
+
+  .empty-text { font-size: 14px; line-height: 1.6; }
+
+  /* ADD BUTTON */
+  .fab-area {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    padding: 16px 24px 32px;
+    background: linear-gradient(to top, var(--bg) 70%, transparent);
+    pointer-events: none;
+  }
+
+  .fab {
+    width: 100%;
+    padding: 18px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    pointer-events: all;
+    transition: transform 0.15s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 4px 24px rgba(200,255,87,0.3);
+  }
+
+  .fab:active { transform: scale(0.97); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px 24px 0 0;
+    padding: 28px 24px 40px;
+    width: 100%;
+    max-width: 480px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .modal-overlay.open .modal {
+    transform: translateY(0);
+  }
+
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 24px;
+  }
+
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 20px;
+  }
+
+  .input-group {
+    margin-bottom: 16px;
+  }
+
+  .input-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .todo-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+  }
+
+  .todo-input:focus {
+    border-color: var(--accent);
+  }
+
+  .tag-select {
+    display: flex;
+    gap: 8px;
+  }
+
+  .tag-option {
+    flex: 1;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tag-option.active-work { background: rgba(200,255,87,0.15); border-color: var(--accent); color: var(--accent); }
+  .tag-option.active-life { background: rgba(255,107,107,0.15); border-color: var(--accent2); color: var(--accent2); }
+  .tag-option.active-other { background: var(--surface2); border-color: var(--text-muted); color: var(--text); }
+
+  .submit-btn {
+    width: 100%;
+    padding: 17px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .submit-btn:active { transform: scale(0.98); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="app-title">My<span>.</span>Todo</div>
+    </div>
+    <div class="date-badge" id="dateDisplay"></div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-chip">
+      <div class="dot"></div>
+      <span id="pendingCount" class="stat-num">0</span>
+      <span>残り</span>
+    </div>
+    <div class="stat-chip done">
+      <div class="dot"></div>
+      <span id="doneCount" class="stat-num">0</span>
+      <span>完了</span>
+    </div>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" data-filter="all">すべて</button>
+  <button class="filter-btn" data-filter="pending">未完了</button>
+  <button class="filter-btn" data-filter="done">完了</button>
+</div>
+
+<div class="todo-scroll">
+  <div class="todo-list" id="todoList"></div>
+</div>
+
+<div class="fab-area">
+  <button class="fab" id="addBtn">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    タスクを追加
+  </button>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">新しいタスク</div>
+    <div class="input-group">
+      <label class="input-label">タスク内容</label>
+      <textarea class="todo-input" id="todoInput" rows="3" placeholder="何をしますか？"></textarea>
+    </div>
+    <div class="input-group">
+      <label class="input-label">カテゴリ</label>
+      <div class="tag-select">
+        <button class="tag-option active-work" data-tag="work">💼 仕事</button>
+        <button class="tag-option" data-tag="life">🏠 プライベート</button>
+        <button class="tag-option" data-tag="other">📌 その他</button>
+      </div>
+    </div>
+    <button class="submit-btn" id="submitBtn">追加する</button>
+  </div>
+</div>
+
+<script>
+  let todos = JSON.parse(localStorage.getItem('todos') || '[]');
+  let filter = 'all';
+  let selectedTag = 'work';
+
+  // Date
+  const d = new Date();
+  const days = ['日','月','火','水','木','金','土'];
+  document.getElementById('dateDisplay').textContent =
+    `${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）`;
+
+  function save() {
+    localStorage.setItem('todos', JSON.stringify(todos));
+  }
+
+  function updateStats() {
+    const pending = todos.filter(t => !t.done).length;
+    const done = todos.filter(t => t.done).length;
+    document.getElementById('pendingCount').textContent = pending;
+    document.getElementById('doneCount').textContent = done;
+  }
+
+  function formatTime(ts) {
+    const d = new Date(ts);
+    return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  function render() {
+    const list = document.getElementById('todoList');
+    let filtered = todos;
+    if (filter === 'pending') filtered = todos.filter(t => !t.done);
+    if (filter === 'done') filtered = todos.filter(t => t.done);
+
+    if (filtered.length === 0) {
+      list.innerHTML = `<div class="empty-state">
+        <span class="empty-icon">✓</span>
+        <div class="empty-text">${filter === 'done' ? 'まだ完了したタスクはありません' : 'タスクがありません<br>下のボタンから追加しましょう'}</div>
+      </div>`;
+      updateStats(); return;
+    }
+
+    list.innerHTML = filtered.map(todo => {
+      const tagClass = todo.tag === 'work' ? 'tag-work' : todo.tag === 'life' ? 'tag-life' : 'tag-other';
+      const tagLabel = todo.tag === 'work' ? '💼 仕事' : todo.tag === 'life' ? '🏠 プライベート' : '📌 その他';
+      return `<div class="todo-item ${todo.done ? 'completed' : ''}" data-id="${todo.id}">
+        <button class="check-btn" onclick="toggleTodo('${todo.id}')">
+          <svg class="check-icon" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1"/></svg>
+        </button>
+        <div class="todo-content">
+          <div class="todo-text">${escHtml(todo.text)}</div>
+          <div class="todo-meta">
+            <span class="todo-tag ${tagClass}">${tagLabel}</span>
+            <span class="todo-time">${formatTime(todo.createdAt)}</span>
+          </div>
+        </div>
+        <button class="delete-btn" onclick="deleteTodo('${todo.id}')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`;
+    }).join('');
+    updateStats();
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function toggleTodo(id) {
+    const t = todos.find(t => t.id === id);
+    if (t) { t.done = !t.done; save(); render(); }
+  }
+
+  function deleteTodo(id) {
+    todos = todos.filter(t => t.id !== id);
+    save(); render();
+  }
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  // Modal
+  const overlay = document.getElementById('modalOverlay');
+  const todoInput = document.getElementById('todoInput');
+
+  document.getElementById('addBtn').addEventListener('click', () => {
+    overlay.classList.add('open');
+    setTimeout(() => todoInput.focus(), 300);
+  });
+
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+
+  // Tag select
+  document.querySelectorAll('.tag-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tag-option').forEach(b => {
+        b.className = 'tag-option';
+      });
+      selectedTag = btn.dataset.tag;
+      btn.classList.add(`active-${selectedTag}`);
+    });
+  });
+
+  document.getElementById('submitBtn').addEventListener('click', () => {
+    const text = todoInput.value.trim();
+    if (!text) { todoInput.focus(); return; }
+    todos.unshift({ id: Date.now().toString(), text, done: false, tag: selectedTag, createdAt: Date.now() });
+    save(); render();
+    todoInput.value = '';
+    overlay.classList.remove('open');
+  });
+
+  // Sample todos
+  if (todos.length === 0) {
+    todos = [
+      { id: '1', text: 'Todoアプリを試してみる', done: false, tag: 'other', createdAt: Date.now() - 300000 },
+      { id: '2', text: '資料の確認をする', done: false, tag: 'work', createdAt: Date.now() - 600000 },
+      { id: '3', text: '買い物リストを作る', done: true, tag: 'life', createdAt: Date.now() - 900000 },
+    ];
+    save();
+  }
+
+  render();
+</script>
+</body>
+</html>
